@@ -88,3 +88,15 @@ def insert_trig_entity(conn, hex_input: str, int_val: int, angle_deg: float, tri
     generated_id = int(id_out.getvalue()[0])
     cur.close()
     return generated_id
+
+def call_sp_confirm(conn, record_id: int, status: str, confirmer: str) -> str:
+    cur = conn.cursor()
+    out_msg = cur.var(str)
+    cur.callproc("SP_CONFIRM_RECORD", [record_id, status, confirmer, out_msg])
+    res = out_msg.getvalue()
+    cur.close()
+    return res
+
+# -----------------------
+# Watson (plantilla)
+# -----------------------      
