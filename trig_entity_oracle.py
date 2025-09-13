@@ -57,3 +57,34 @@ def compute_trig(angle_deg: float) -> Dict[str, float]:
     except Exception:
         tan_v = float('inf')
     return {"angle_rad": rad, "sin": sin_v, "cos": cos_v, "tan": tan_v} 
+
+# -----------------------
+# Operaciones Oracle
+# -----------------------
+def get_oracle_connection(cfg: Dict[str, str]):
+    return oracledb.connect(user=cfg["user"], password=cfg["password"], dsn=cfg["dsn"])
+
+def insert_trig_entity(conn, hex_input: str, int_val: int, angle_deg: float, trig: Dict[str, float])
+    sql = """
+    INSERT INTO TRIG_ENTITY (
+        HEX_INPUT, INT_VALUE, ANGLE_DEG, ANGLE_RAD, SIN_VAL, COS_VAL, TAN_VAL
+    ) VALUES (:hex_input, :int_val, :angle_deg, :angle_rad, :sin_val, :cos_val, :tan_val)
+    RETURNING ID INTO: id_out
+    """
+
+    cur = conn.cursor()
+    id_out = cur.var(int)
+    cur.execute(sql, {
+        "hex_input": hex_input,
+        "int_val": int_val,
+        "angle_deg": angle_deg,
+        "angle_rad": trig["angle_rad"],
+        "sin_val": trig["sin"],
+        "cos_val": trig["cos"],
+        "tan_val": trig["tan"],
+        "id_out": id_out
+    })
+    conn.commit()
+    generated_id = int(id_out.getvalue()[0])
+    cur.close()
+    return generated_id
