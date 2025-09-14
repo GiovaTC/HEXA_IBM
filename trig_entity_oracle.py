@@ -99,4 +99,75 @@ def call_sp_confirm(conn, record_id: int, status: str, confirmer: str) -> str:
 
 # -----------------------
 # Watson (plantilla)
-# -----------------------      
+# -----------------------   
+def send_to_watson_template(payload: Dict[str, Any], watson_cfg: Dict[str, str]) -> Dict[str, Any]:
+    if not watson_cfg.get("apikey") or not watson_cfg.get("url"):
+        raise RuntimeError("watson config incompleta")
+
+    headers = {"Content-Type": "application/json"}
+    headers["X-IBM-Client-Id"] = watson_cfg["apikey"]
+
+    resp = requests.post(watson_cfg["url"], headers=headers, data= json.dumps(payload),  timeout= 10)
+    resp.raise_for_status()
+    return resp.json
+
+# -----------------------
+# Flujo principal
+# -----------------------
+def process_hex_and_store(hex_input: str, confirm_with_watson: bool = False) -> Dict[str, Any]:
+    int_value = hex_to_int(hex_input)
+    angle_deg = int_to_angle_deg(int_value)
+    trig = compute_trig(angle_deg)
+
+    conn = get_oracle_connection(ORACLE_CONFIG)
+    try:
+        record_id  = insert_trig_entity(conn, hex_input, int_value, angle_deg, trig)
+    except Exception:
+        conn.close()
+        raise
+    
+    confirmation_status = "PENDING"
+    confirmer_name = None
+    watson_resp_text = None
+
+    if confirm_with_watson:
+        payload = {
+            "input": {
+                "text": f"Confirm record: id={record_id}, hex={hex_input}, sin=(trig['sin']:.6f), cos={trig['cos']:.6f}"   
+            }
+        }   
+        try:
+            watson_res = send_to_watson_template(payload, WATSON_CONFIG)
+            watson_resp_text = json.dumps(watson_res)[:4000]
+            confirmation_status = "CONFIRMED" if watson_res else "REJECTED"
+            confirmer_name = "IBM_WATSON"
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE TRIG_ENTITY
+                SET WATSON RESPONSE = :watson_response 
+                WHERE ID = :id
+            """, {"watson_response": watson_resp_text, "id": record_id})
+            conn.commit()
+            cur.close()
+        except Exception as e:
+            watson_resp_text = f"ERROR_WATSON: {str(e)}"    
+            confirmation_status = "PENDING"
+            confirmer_name = "WATSON_ERROR"
+
+    sp_msg = call_sp_confirm(conn,record_id, confirmation_status, confirmer_name or "SYSTEM")
+    conn.close()
+
+    return {
+        "id": record_id,
+        "hex_input": hex_input,
+        "int_value": int_value,
+        "angle_deg": angle_deg,
+        "trig": trig,
+        "watson_response": watson_resp_text,
+        "sp_message": sp_msg,   
+        "confirmation_status": confirmation_status
+    } 
+
+# -----------------------
+# Ejemplo .
+# -----------------------                
