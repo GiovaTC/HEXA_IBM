@@ -64,7 +64,7 @@ def compute_trig(angle_deg: float) -> Dict[str, float]:
 def get_oracle_connection(cfg: Dict[str, str]):
     return oracledb.connect(user=cfg["user"], password=cfg["password"], dsn=cfg["dsn"])
 
-def insert_trig_entity(conn, hex_input: str, int_val: int, angle_deg: float, trig: Dict[str, float])
+def insert_trig_entity(conn, hex_input: str, int_val: int, angle_deg: float, trig: Dict[str, float]):
     sql = """
     INSERT INTO TRIG_ENTITY (
         HEX_INPUT, INT_VALUE, ANGLE_DEG, ANGLE_RAD, SIN_VAL, COS_VAL, TAN_VAL
@@ -171,3 +171,39 @@ def process_hex_and_store(hex_input: str, confirm_with_watson: bool = False) -> 
 # -----------------------
 # Ejemplo .
 # -----------------------                
+if __name__ == "__main__":
+    sample_hex = "0x1A3F"
+    try:
+        result = process_hex_and_store(sample_hex, confirm_with_watson=False)
+        print("resultado: ", json.dumps({
+            "id": result["id"],
+            "hex": result["hex_input"],
+            "int": result["int_value"],
+            "angle_deg": result["angle_deg"],
+            "sin": result["trig"]["sin"],
+            "cos": result["trig"]["cos"],
+            "tan": result["trig"]["tan"],
+            "sp_msg": result["sp_message"],
+            "status": result["confirmation_status"]
+        }, indent= 2))
+    except Exception as ex: 
+        print("error en el flujo:", str(ex))
+
+"""
+3) Notas y recomendaciones
+Instalar librería:
+
+bash
+pip install oracledb requests
+Modo thin: python-oracledb funciona sin cliente Oracle adicional si tu base acepta conexiones directas.
+Stored Procedure: ajusta SP_CONFIRM_RECORD a la lógica de tu negocio.
+
+IBM Watson:
+Requiere apikey y url correctos.
+El ejemplo usa un header simple, ajusta según la API real (Assistant v2, NLU, etc.).
+
+Seguridad:
+No dejes credenciales en texto plano.
+Usa variables de entorno o un secret manager.
+Precaución con tan: si cos ≈ 0, puede dar valores muy grandes.
+"""
