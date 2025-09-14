@@ -1,6 +1,6 @@
 # HEXA_IBM
 
-<img width="2555" height="1077" alt="image" src="https://github.com/user-attachments/assets/d97e5c0f-5d08-49ad-bb18-541dca3e3540" />
+<img width="2554" height="1079" alt="image" src="https://github.com/user-attachments/assets/9ed7f8ac-521a-416e-9a2e-037365603389" />
 
 ## Descripción
 Este proyecto en Python realiza los siguientes pasos:
